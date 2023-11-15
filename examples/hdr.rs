@@ -10,9 +10,7 @@ use bevy::{
     window::WindowResolution,
     winit::WinitSettings,
 };
-use bevy_image_export::{
-    ImageExportBundle, ImageExportPlugin, ImageExportSettings, ImageExportSource,
-};
+use bevy_image_export::{ImageExportBundle, ImageExportPlugin, ImageExportSource};
 use std::f32::consts::PI;
 
 fn main() {
@@ -105,10 +103,6 @@ fn setup(
 
     commands.spawn(ImageExportBundle {
         source: exporter_sources.add(output_texture_handle.into()),
-        settings: ImageExportSettings {
-            extension: "exr".into(),
-            ..default()
-        },
     });
 
     commands.insert_resource(AmbientLight {

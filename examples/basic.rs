@@ -13,9 +13,6 @@ use bevy_image_export::{ImageExportBundle, ImageExportPlugin, ImageExportSource}
 use std::f32::consts::PI;
 
 fn main() {
-    let export_plugin = ImageExportPlugin::default();
-    let export_threads = export_plugin.threads.clone();
-
     App::new()
         .insert_resource(WinitSettings {
             return_from_run: true,
@@ -29,7 +26,7 @@ fn main() {
                 }),
                 ..default()
             }),
-            export_plugin,
+            ImageExportPlugin,
         ))
         .insert_resource(AmbientLight {
             color: Color::WHITE,
@@ -38,8 +35,6 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(Update, update)
         .run();
-
-    export_threads.finish();
 }
 
 fn setup(
