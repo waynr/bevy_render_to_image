@@ -6,7 +6,9 @@ use bevy::{
     render::{
         camera::CameraUpdateSystem,
         extract_component::{ExtractComponent, ExtractComponentPlugin},
+        main_graph::node::CAMERA_DRIVER,
         render_asset::{RenderAssetPlugin, RenderAssets},
+        render_graph::RenderGraph,
         renderer::RenderDevice,
         Render, RenderApp, RenderSet,
     },
@@ -16,6 +18,7 @@ use ndi_sdk::{load, SendInstance};
 
 use super::plugin::get_image;
 use super::plugin::ImageExportSource;
+use super::node::{ImageExportNode, NODE_NAME};
 
 #[derive(Default)]
 pub struct NDIExportPlugin;
@@ -141,5 +144,10 @@ impl Plugin for NDIExportPlugin {
                     .after(RenderSet::Render)
                     .before(RenderSet::Cleanup),
             );
+
+        let mut graph = render_app.world.get_resource_mut::<RenderGraph>().unwrap();
+
+        graph.add_node(NODE_NAME, ImageExportNode);
+        graph.add_node_edge(CAMERA_DRIVER, NODE_NAME);
     }
 }
