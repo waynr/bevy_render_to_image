@@ -16,9 +16,9 @@ use bevy::{
 use ndi_sdk::send::{create_ndi_send_video_frame, FrameFormatType, SendColorFormat};
 use ndi_sdk::{load, SendInstance};
 
+use super::node::{ImageExportNode, NODE_NAME};
 use super::plugin::get_image;
 use super::plugin::ImageExportSource;
-use super::node::{ImageExportNode, NODE_NAME};
 
 #[derive(Default)]
 pub struct NDIExportPlugin;
@@ -69,26 +69,12 @@ fn ndi_send_buffer(
     ndi_export_bundle: Query<(Ref<NDIExport>, Ref<Handle<ImageExportSource>>)>,
     sources: Res<RenderAssets<ImageExportSource>>,
     render_device: Res<RenderDevice>,
-    time: Res<Time>,
-    mut timer: ResMut<NDIExportRateLimiter>,
 ) {
-    if !timer.0.tick(time.delta()).just_finished() {
-        return;
-    }
-
     let sources = sources.into_inner();
     let render_device = render_device.into_inner();
 
     for (ndi_export, source_handle) in &ndi_export_bundle {
         if let Some(img) = get_image(source_handle.clone(), sources, render_device) {
-            if let Ok(dy) = img.clone().try_into_dynamic() {
-                dbg!("saving");
-                dy.save("test.png").ok();
-            }
-            println!("building NDISendVideoFrame");
-            println!("img buf len: {}", img.data.len());
-            println!("img buf width: {}", img.width());
-            println!("img buf height: {}", img.height());
             let (x, y) = (img.width() as i32, img.height() as i32);
             let frame_builder = create_ndi_send_video_frame(x, y, FrameFormatType::Progressive)
                 .with_data(img.data, x * 4, SendColorFormat::Rgba);
@@ -99,7 +85,6 @@ fn ndi_send_buffer(
                 }
                 Ok(f) => f,
             };
-            println!("exporting video frame to NDI namespace");
             ndi_export
                 .sender
                 .lock()
@@ -133,17 +118,12 @@ impl Plugin for NDIExportPlugin {
 
         let render_app = app.sub_app_mut(RenderApp);
 
-        render_app
-            .insert_resource(NDIExportRateLimiter(Timer::from_seconds(
-                1.0,
-                TimerMode::Repeating,
-            )))
-            .add_systems(
-                Render,
-                ndi_send_buffer
-                    .after(RenderSet::Render)
-                    .before(RenderSet::Cleanup),
-            );
+        render_app.add_systems(
+            Render,
+            ndi_send_buffer
+                .after(RenderSet::Render)
+                .before(RenderSet::Cleanup),
+        );
 
         let mut graph = render_app.world.get_resource_mut::<RenderGraph>().unwrap();
 

@@ -86,7 +86,7 @@ impl ExtractComponent for ImageExport {
     type Out = (ImageExport, Handle<ImageExportSource>);
 
     fn extract_component((this, source_handle): QueryItem<'_, Self::Query>) -> Option<Self::Out> {
-        dbg!("extract");
+        //dbg!("extract");
         Some((*this, source_handle.clone_weak()))
     }
 }
@@ -123,7 +123,7 @@ pub(crate) fn get_image(
     sources: &RenderAssets<ImageExportSource>,
     render_device: &RenderDevice,
 ) -> Option<Image> {
-    dbg!(&source_handle);
+    //dbg!(&source_handle);
     if let Some(gpu_source) = sources.get(source_handle.id()) {
         let mut image_bytes = {
             let slice = gpu_source.buffer.slice(..);
@@ -158,7 +158,7 @@ pub(crate) fn get_image(
 
             image_bytes = unpadded_bytes;
         }
-        dbg!(image_bytes.len());
+        //dbg!(image_bytes.len());
 
         let img = Image {
             data: image_bytes,
