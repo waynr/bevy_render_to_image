@@ -22,6 +22,7 @@ fn main() {
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
                     resolution: WindowResolution::new(768.0, 768.0).with_scale_factor_override(1.0),
+                    present_mode: bevy::window::PresentMode::Fifo,
                     ..default()
                 }),
                 ..default()
@@ -113,10 +114,10 @@ fn setup(
 struct Moving;
 
 fn update(mut transforms: Query<&mut Transform, With<Moving>>, mut frame: Local<u32>) {
-    let theta = *frame as f32 * 0.01 * PI;
+    let theta = *frame as f32 * 0.005 * PI;
     *frame += 1;
     for mut transform in &mut transforms {
-        transform.translation = Vec3::new(theta.sin(), theta.cos(), 0.0);
-        transform.rotate_y(std::f32::consts::TAU * *frame as f32 * 80.0);
+        transform.translation = Vec3::new(theta.sin(), theta.cos(), theta.cos());
+        transform.rotate_y(std::f32::consts::TAU * (*frame % 360) as f32 * 80.0);
     }
 }
