@@ -14,12 +14,16 @@ repository = "https://github.com/paulkre/bevy_image_export"
 bevy = { version = "0.12", default-features = false, features = [
   "bevy_render",
   "bevy_asset",
+  "bevy_winit",
+	"x11",
 ] }
 image = { version = "0.24", default-features = false }
 futures = "0.3"
 futures-lite = "1"
 wgpu = "0.17.1"
 bytemuck = "1.13"
+
+ndi-sdk = { git = "https://github.com/waynr/rust-ndi", branch = "clean-up-error-handling"  }
 
 [features]
 default = ["png"]

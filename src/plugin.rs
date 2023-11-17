@@ -14,22 +14,11 @@ use bevy::{
         render_graph::RenderGraph,
         render_resource::{Buffer, BufferDescriptor, BufferUsages, Extent3d, MapMode},
         renderer::RenderDevice,
-        texture::ImageFormat,
         Render, RenderApp, RenderSet,
     },
-    utils::dbg,
 };
-use bytemuck::AnyBitPattern;
 use futures::channel::oneshot;
-use image::{
-    error::UnsupportedErrorKind, EncodableLayout, ImageBuffer, ImageError, Pixel,
-    PixelWithColorType, Rgba,
-};
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-};
-use wgpu::{Maintain, TextureDescriptor};
+use wgpu::Maintain;
 
 #[derive(Clone, TypeUuid, Default, Reflect, Asset)]
 #[uuid = "d619b2f8-58cf-42f6-b7da-028c0595f7aa"]
@@ -113,70 +102,86 @@ fn save_buffer_to_disk(
     sources: Res<RenderAssets<ImageExportSource>>,
     render_device: Res<RenderDevice>,
 ) {
+    let sources = sources.into_inner();
+    let render_device = render_device.into_inner();
     for source_handle in &export_bundles {
-        dbg!(&source_handle);
-        if let Some(gpu_source) = sources.get(source_handle.id()) {
-            let mut image_bytes = {
-                let slice = gpu_source.buffer.slice(..);
-
-                {
-                    let (mapping_tx, mapping_rx) = oneshot::channel();
-
-                    render_device.map_buffer(&slice, MapMode::Read, move |res| {
-                        mapping_tx.send(res).unwrap();
-                    });
-
-                    render_device.poll(Maintain::Wait);
-                    futures_lite::future::block_on(mapping_rx).unwrap().unwrap();
-                }
-
-                slice.get_mapped_range().to_vec()
-            };
-
-            gpu_source.buffer.unmap();
-
-            let bytes_per_row = gpu_source.bytes_per_row as usize;
-            let padded_bytes_per_row = gpu_source.padded_bytes_per_row as usize;
-            let source_size = gpu_source.source_size;
-
-            if bytes_per_row != padded_bytes_per_row {
-                let mut unpadded_bytes =
-                    Vec::<u8>::with_capacity(source_size.height as usize * bytes_per_row);
-
-                for padded_row in image_bytes.chunks(padded_bytes_per_row) {
-                    unpadded_bytes.extend_from_slice(&padded_row[..bytes_per_row]);
-                }
-
-                image_bytes = unpadded_bytes;
-            }
-            dbg!(image_bytes.len());
-
-            let img = Image {
-                data: image_bytes,
-                texture_descriptor: wgpu::TextureDescriptor {
-                    size: wgpu::Extent3d {
-                        width: source_size.width,
-                        height: source_size.height,
-                        depth_or_array_layers: 1,
-                    },
-                    r#format: wgpu::TextureFormat::Rgba8UnormSrgb,
-                    dimension: wgpu::TextureDimension::D2,
-                    label: None,
-                    mip_level_count: 1,
-                    sample_count: 1,
-                    usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-                    view_formats: &[],
-                },
-                sampler: bevy::render::texture::ImageSampler::Default,
-                texture_view_descriptor: None,
-            };
-
+        if let Some(img) = get_image(
+            source_handle.clone(),
+            sources,
+            render_device,
+        ) {
             if let Ok(dy) = img.try_into_dynamic() {
                 dbg!("saving");
                 dy.save("test.png").ok();
             }
         }
     }
+}
+
+pub(crate) fn get_image(
+    source_handle: Handle<ImageExportSource>,
+    sources: &RenderAssets<ImageExportSource>,
+    render_device: &RenderDevice,
+) -> Option<Image> {
+    dbg!(&source_handle);
+    if let Some(gpu_source) = sources.get(source_handle.id()) {
+        let mut image_bytes = {
+            let slice = gpu_source.buffer.slice(..);
+
+            {
+                let (mapping_tx, mapping_rx) = oneshot::channel();
+
+                render_device.map_buffer(&slice, MapMode::Read, move |res| {
+                    mapping_tx.send(res).unwrap();
+                });
+
+                render_device.poll(Maintain::Wait);
+                futures_lite::future::block_on(mapping_rx).unwrap().unwrap();
+            }
+
+            slice.get_mapped_range().to_vec()
+        };
+
+        gpu_source.buffer.unmap();
+
+        let bytes_per_row = gpu_source.bytes_per_row as usize;
+        let padded_bytes_per_row = gpu_source.padded_bytes_per_row as usize;
+        let source_size = gpu_source.source_size;
+
+        if bytes_per_row != padded_bytes_per_row {
+            let mut unpadded_bytes =
+                Vec::<u8>::with_capacity(source_size.height as usize * bytes_per_row);
+
+            for padded_row in image_bytes.chunks(padded_bytes_per_row) {
+                unpadded_bytes.extend_from_slice(&padded_row[..bytes_per_row]);
+            }
+
+            image_bytes = unpadded_bytes;
+        }
+        dbg!(image_bytes.len());
+
+        let img = Image {
+            data: image_bytes,
+            texture_descriptor: wgpu::TextureDescriptor {
+                size: wgpu::Extent3d {
+                    width: source_size.width,
+                    height: source_size.height,
+                    depth_or_array_layers: 1,
+                },
+                format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                dimension: wgpu::TextureDimension::D2,
+                label: None,
+                mip_level_count: 1,
+                sample_count: 1,
+                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                view_formats: &[],
+            },
+            sampler: bevy::render::texture::ImageSampler::Default,
+            texture_view_descriptor: None,
+        };
+        return Some(img);
+    }
+    None
 }
 
 /// Plugin enabling the generation of image sequences.
