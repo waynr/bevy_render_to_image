@@ -9,10 +9,7 @@ use bevy::{
     window::WindowResolution,
     winit::WinitSettings,
 };
-use bevy_image_export::{
-    ImageExportSource, NDIExport, NDIExportBundle,
-    NDIExportPlugin,
-};
+use bevy_image_export::{ImageExportSource, NDIExport, NDIExportBundle, NDIExportPlugin};
 use std::f32::consts::PI;
 
 fn main() {
@@ -29,8 +26,11 @@ fn main() {
                 }),
                 ..default()
             }),
-            //ImageExportPlugin,
             NDIExportPlugin,
+            bevy::diagnostic::FrameTimeDiagnosticsPlugin,
+            bevy::diagnostic::LogDiagnosticsPlugin {
+                ..default()
+            },
         ))
         .insert_resource(AmbientLight {
             color: Color::WHITE,
