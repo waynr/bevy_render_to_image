@@ -9,7 +9,7 @@ use bevy::{
     window::WindowResolution,
     winit::WinitSettings,
 };
-use bevy_image_export::{ImageExportBundle, ImageExportPlugin, ImageExportSource};
+use bevy_gstreamer::{ImageExportSource, NDIExport, NDIExportBundle, NDIExportPlugin};
 use std::f32::consts::PI;
 
 fn main() {
@@ -22,16 +22,17 @@ fn main() {
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
                     resolution: WindowResolution::new(768.0, 768.0).with_scale_factor_override(1.0),
+                    transparent: true,
+                    present_mode: bevy::window::PresentMode::Fifo,
                     ..default()
                 }),
                 ..default()
             }),
-            ImageExportPlugin,
+            NDIExportPlugin,
+            //bevy::diagnostic::FrameTimeDiagnosticsPlugin,
+            //bevy::diagnostic::LogDiagnosticsPlugin { ..default() },
         ))
-        .insert_resource(AmbientLight {
-            color: Color::WHITE,
-            brightness: 1.0,
-        })
+        .insert_resource(ClearColor(Color::NONE))
         .add_systems(Startup, setup)
         .add_systems(Update, update)
         .run();
@@ -85,15 +86,26 @@ fn setup(
             });
         });
 
-    commands.spawn(ImageExportBundle {
-        source: export_sources.add(output_texture_handle.into()),
-        ..default()
-    });
+    match NDIExport::new("basic_ndi".to_string()) {
+        Err(e) => eprintln!("failed to initialize NDIExport: {e}"),
+        Ok(ndi_export) => {
+            commands.spawn(NDIExportBundle {
+                source: export_sources.add(output_texture_handle.into()),
+                export: ndi_export,
+            });
+        }
+    }
+
+    let mut color = Color::GREEN;
+    color.set_l(0.8);
+    color.set_s(0.7);
+    let mut material: StandardMaterial = color.into();
+    material.emissive = Color::WHITE.with_l(0.4);
 
     commands.spawn((
         PbrBundle {
             mesh: meshes.add(Mesh::try_from(shape::Cube::default()).unwrap()),
-            material: materials.add(Color::rgb(1.0, 0.0, 0.0).into()),
+            material: materials.add(material),
             ..default()
         },
         Moving,
@@ -102,10 +114,12 @@ fn setup(
 
 #[derive(Component)]
 struct Moving;
+
 fn update(mut transforms: Query<&mut Transform, With<Moving>>, mut frame: Local<u32>) {
-    let theta = *frame as f32 * 0.25 * PI;
+    let theta = *frame as f32 * 0.005 * PI;
     *frame += 1;
     for mut transform in &mut transforms {
-        transform.translation = Vec3::new(theta.sin(), theta.cos(), 0.0);
+        transform.translation = Vec3::new(theta.sin(), theta.cos(), theta.cos());
+        transform.rotate_y(std::f32::consts::TAU * (*frame % 360) as f32 * 80.0);
     }
 }

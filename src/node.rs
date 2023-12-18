@@ -19,7 +19,9 @@ impl Node for ImageExportNode {
         render_context: &mut RenderContext,
         world: &World,
     ) -> Result<(), NodeRunError> {
+        let frame_count = &world.get_resource::<bevy::core::FrameCount>().unwrap().0;
         for (_, source) in world.resource::<RenderAssets<ImageExportSource>>().iter() {
+            bevy::log::debug!("getting image from gpu for frame {}", frame_count);
             if let Some(gpu_image) = world
                 .resource::<RenderAssets<Image>>()
                 .get(&source.source_handle)

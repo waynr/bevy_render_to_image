@@ -1,4 +1,3 @@
-use crate::node::{ImageExportNode, NODE_NAME};
 use bevy::{
     ecs::{
         query::QueryItem,
@@ -7,14 +6,10 @@ use bevy::{
     prelude::*,
     reflect::TypeUuid,
     render::{
-        camera::CameraUpdateSystem,
-        extract_component::{ExtractComponent, ExtractComponentPlugin},
-        main_graph::node::CAMERA_DRIVER,
-        render_asset::{PrepareAssetError, RenderAsset, RenderAssetPlugin, RenderAssets},
-        render_graph::RenderGraph,
+        extract_component::{ExtractComponent},
+        render_asset::{PrepareAssetError, RenderAsset, RenderAssets},
         render_resource::{Buffer, BufferDescriptor, BufferUsages, Extent3d, MapMode},
         renderer::RenderDevice,
-        Render, RenderApp, RenderSet,
     },
 };
 use futures::channel::oneshot;
@@ -30,6 +25,7 @@ impl From<Handle<Image>> for ImageExportSource {
     }
 }
 
+#[derive(Debug)]
 pub struct GpuImageExportSource {
     pub buffer: Buffer,
     pub source_handle: Handle<Image>,
@@ -95,27 +91,6 @@ impl ExtractComponent for ImageExport {
 pub struct ImageExportBundle {
     pub source: Handle<ImageExportSource>,
     pub export: ImageExport,
-}
-
-fn save_buffer_to_disk(
-    export_bundles: Query<Ref<Handle<ImageExportSource>>>,
-    sources: Res<RenderAssets<ImageExportSource>>,
-    render_device: Res<RenderDevice>,
-) {
-    let sources = sources.into_inner();
-    let render_device = render_device.into_inner();
-    for source_handle in &export_bundles {
-        if let Some(img) = get_image(
-            source_handle.clone(),
-            sources,
-            render_device,
-        ) {
-            if let Ok(dy) = img.try_into_dynamic() {
-                dbg!("saving");
-                dy.save("test.png").ok();
-            }
-        }
-    }
 }
 
 pub(crate) fn get_image(
@@ -184,46 +159,8 @@ pub(crate) fn get_image(
     None
 }
 
-/// Plugin enabling the generation of image sequences.
-#[derive(Default)]
-pub struct ImageExportPlugin;
-
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
 pub enum ImageExportSystems {
     SetupImageExport,
     SetupImageExportFlush,
-}
-
-impl Plugin for ImageExportPlugin {
-    fn build(&self, app: &mut App) {
-        use ImageExportSystems::*;
-
-        app.configure_sets(
-            PostUpdate,
-            (SetupImageExport, SetupImageExportFlush)
-                .chain()
-                .before(CameraUpdateSystem),
-        )
-        .register_type::<ImageExportSource>()
-        .init_asset::<ImageExportSource>()
-        .register_asset_reflect::<ImageExportSource>()
-        .add_plugins((
-            RenderAssetPlugin::<ImageExportSource>::default(),
-            ExtractComponentPlugin::<ImageExport>::default(),
-        ));
-
-        let render_app = app.sub_app_mut(RenderApp);
-
-        render_app.add_systems(
-            Render,
-            save_buffer_to_disk
-                .after(RenderSet::Render)
-                .before(RenderSet::Cleanup),
-        );
-
-        let mut graph = render_app.world.get_resource_mut::<RenderGraph>().unwrap();
-
-        graph.add_node(NODE_NAME, ImageExportNode);
-        graph.add_node_edge(CAMERA_DRIVER, NODE_NAME);
-    }
 }
