@@ -1,14 +1,14 @@
 [package]
-name = "bevy_image_export"
+name = "bevy_gstreamer"
 version = "0.8.0"
 edition = "2021"
 categories = ["graphics", "rendering"]
 keywords = ["creative", "coding", "sketching"]
-description = "Bevy plugin for rendering image sequences"
-documentation = "https://docs.rs/bevy_image_export"
+description = "Bevy plugin for rendering to a gstreamer pipeline"
+#documentation = "https://docs.rs/bevy_image_export"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/paulkre/bevy_image_export"
+repository = "https://github.com/waynr/bevy_gstreamer"
 
 [dependencies]
 bevy = { version = "0.12", default-features = false, features = [
@@ -23,7 +23,9 @@ futures-lite = "1"
 wgpu = "0.17.1"
 bytemuck = "1.13"
 
-ndi-sdk = { git = "https://github.com/waynr/rust-ndi", branch = "clean-up-error-handling"  }
+gstreamer = "0.21"
+gstreamer-app = "0.21"
+gstreamer-video = "0.21"
 
 [features]
 default = ["png"]

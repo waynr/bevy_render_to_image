@@ -1,10 +1,7 @@
-mod ndi;
+mod gstreamer;
 mod node;
 mod plugin;
 
-pub use ndi::{NDIExport, NDIExportBundle, NDIExportPlugin};
+pub use gstreamer::{NDIExport, NDIExportBundle, NDIExportPlugin};
 
-pub use plugin::{
-    GpuImageExportSource, ImageExportBundle, ImageExportSource,
-    ImageExportSystems,
-};
+pub use plugin::{GpuImageExportSource, ImageExportBundle, ImageExportSource, ImageExportSystems};

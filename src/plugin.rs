@@ -6,7 +6,7 @@ use bevy::{
     prelude::*,
     reflect::TypeUuid,
     render::{
-        extract_component::{ExtractComponent},
+        extract_component::ExtractComponent,
         render_asset::{PrepareAssetError, RenderAsset, RenderAssets},
         render_resource::{Buffer, BufferDescriptor, BufferUsages, Extent3d, MapMode},
         renderer::RenderDevice,

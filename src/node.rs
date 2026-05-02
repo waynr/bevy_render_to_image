@@ -19,6 +19,8 @@ impl Node for ImageExportNode {
         render_context: &mut RenderContext,
         world: &World,
     ) -> Result<(), NodeRunError> {
+        // TODO: we need to get state from NDIExportPlugin somehow to know when the downstream
+        // gstreamer plugin is actually ready for data
         let frame_count = &world.get_resource::<bevy::core::FrameCount>().unwrap().0;
         for (_, source) in world.resource::<RenderAssets<ImageExportSource>>().iter() {
             bevy::log::debug!("getting image from gpu for frame {}", frame_count);

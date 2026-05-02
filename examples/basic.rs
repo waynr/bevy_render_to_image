@@ -45,7 +45,7 @@ fn setup(
     mut images: ResMut<Assets<Image>>,
     mut export_sources: ResMut<Assets<ImageExportSource>>,
 ) {
-    let output_texture_handle = {
+    let (size, output_texture_handle) = {
         let size = Extent3d {
             width: 768,
             height: 768,
@@ -68,7 +68,7 @@ fn setup(
         };
         export_texture.resize(size);
 
-        images.add(export_texture)
+        (size, images.add(export_texture))
     };
 
     commands
@@ -86,8 +86,8 @@ fn setup(
             });
         });
 
-    match NDIExport::new("basic_ndi".to_string()) {
-        Err(e) => eprintln!("failed to initialize NDIExport: {e}"),
+    match NDIExport::new("basic_ndi".to_string(), size) {
+        Err(e) => bevy::log::warn!("failed to initialize NDIExport: {e}"),
         Ok(ndi_export) => {
             commands.spawn(NDIExportBundle {
                 source: export_sources.add(output_texture_handle.into()),
